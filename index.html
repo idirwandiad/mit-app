@@ -562,14 +562,16 @@ function captureCheckin(){
   ctx.fillText("GDM    : " + currentShop.gdm,10,y); y+=22;
   ctx.fillText("Class  : " + currentShop.class,10,y);
 
-  const imageData = canvas.toDataURL("image/jpeg");
+const imageData = canvas.toDataURL("image/jpeg");
 
-  saveCheckin(currentShop.name, imageData);
+saveCheckin(currentShop.name, imageData); // untuk thumbnail & preview
+autoDownload(imageData);                  // untuk masuk galeri
 
-  stopCamera();
-  alert("Check-in berhasil!");
-  showPage("listPage");
-  renderList();
+stopCamera();
+alert("Check-in berhasil!");
+showPage("listPage");
+renderList();
+
 }
 
 // ================= PAGE SWITCH =================
@@ -673,9 +675,10 @@ function captureActivity(){
   ctx.fillText("Toko: " + currentShop.name,10,y); y+=22;
   ctx.fillText("Aktivitas: " + currentActivity,10,y);
 
-  const img = canvas.toDataURL("image/jpeg");
+const img = canvas.toDataURL("image/jpeg");
 
-  saveActivity(currentShop.name, currentActivity, img);
+saveActivity(currentShop.name, currentActivity, img);
+autoDownload(img);
 
   stopCamera();
   currentActivity=null;
@@ -694,6 +697,15 @@ function stopCamera(){
     video.srcObject.getTracks().forEach(t=>t.stop());
     video.srcObject=null;
   }
+}
+
+function autoDownload(base64){
+  const a = document.createElement("a");
+  a.href = base64;
+  a.download = "MIT_" + Date.now() + ".jpg";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 
