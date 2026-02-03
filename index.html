@@ -111,6 +111,51 @@ video, canvas {
   margin-bottom: 2px;
 }
 
+.camera-wrap {
+  position: relative;
+}
+
+.capture-btn {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: #00c853;
+  border: 5px solid white;
+  box-shadow: 0 4px 15px rgba(0,0,0,.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: white;
+  z-index: 1000;
+}
+
+.capture-btn:active {
+  transform: translateX(-50%) scale(0.95);
+}
+
+.switch-btn {
+  position: absolute;
+  bottom: 30px;
+  right: 20px;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  border: none;
+  color: white;
+  font-size: 20px;
+  z-index: 1001;
+}
+.switch-btn:active {
+  transform: scale(0.9);
+}
+
+
 </style>
 </head>
 <body>
@@ -121,14 +166,6 @@ video, canvas {
   <p class="mb-1">Northern Sumatra Operation</p>
 </div>
 
-<!-- NAV -->
-<nav class="navbar navbar-expand navbar-light bg-white shadow-sm sticky-top">
-  <div class="bottom-nav d-flex justify-content-around py-2">
-  <button class="btn btn-link" onclick="showPage('listPage')">🏪<br>Toko</button>
-  <button class="btn btn-link" onclick="alert('Pilih toko')">📸<br>Selfie</button>
-</div>
-
-</nav>
 
 <!-- LIST PAGE -->
 <div id="listPage" class="container mt-3">
@@ -139,9 +176,21 @@ video, canvas {
 <!-- CAMERA PAGE -->
 <div id="cameraPage" class="container mt-3" style="display:none;">
   <h5>📸 Selfie Check-in</h5>
-  <video id="video" autoplay playsinline muted></video>
-  <canvas id="canvas" class="mt-2"></canvas>
-  <button class="btn btn-success w-100 mt-3" onclick="capturePhoto()">Ambil Foto</button>
+
+  <div class="camera-wrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas" class="mt-2"></canvas>
+
+    <!-- SWITCH CAMERA -->
+    <button class="switch-btn" onclick="switchCamera()">
+      <i class="bi bi-arrow-repeat"></i>
+    </button>
+
+    <!-- CAPTURE -->
+    <button class="capture-btn" onclick="capturePhoto()">
+      <i class="bi bi-camera-fill"></i>
+    </button>
+  </div>
 </div>
 
 <!-- MODAL DETAIL TOKO -->
@@ -184,6 +233,11 @@ video, canvas {
     </div>
   </div>
 </div>
+
+<!-- FOOTER -->
+<footer class="text-center py-3 mt-4" style="color:#888; font-size:13px;">
+  © 2026 Festive MIT
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -273,10 +327,14 @@ const shops = [
 
 ];
 
+
 let currentShop=null;
 const teamSelect=document.getElementById("teamSelect");
 const video=document.getElementById("video");
 const canvas=document.getElementById("canvas");
+
+let currentFacingMode = "user"; // user = depan, environment = belakang
+
 
 // ================= LOCAL STORAGE =================
 function saveCheckin(shopName, imageData){
@@ -447,20 +505,33 @@ function openMap(lat,lng){
 async function startCamera(name){
   currentShop = shops.find(x=>x.name===name);
   showPage("cameraPage");
+  await openCamera();
+}
 
-  setTimeout(async ()=>{
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
-        audio: false
-      });
-      video.srcObject = stream;
-      await video.play();
-    } catch (err) {
-      alert("Kamera tidak bisa diakses. Pastikan izin kamera aktif.");
-      console.error(err);
-    }
-  }, 300);
+async function openCamera(){
+  stopCamera(); // matikan kamera lama kalau ada
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: currentFacingMode },
+      audio: false
+    });
+    video.srcObject = stream;
+    await video.play();
+  } catch (err) {
+    alert("Tidak bisa membuka kamera");
+    console.error(err);
+  }
+}
+
+async function switchCamera(){
+  if(currentFacingMode === "user"){
+    currentFacingMode = "environment";
+  } else {
+    currentFacingMode = "user";
+  }
+
+  await openCamera();
 }
 
 // ================= CAPTURE =================
