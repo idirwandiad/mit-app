@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visit Team App</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+
+<style>
+body { background:#f4f6f9; }
+
+.hero {
+  background: linear-gradient(135deg,#00c853,#1de9b6);
+  color:white;
+  padding:50px 20px 70px;
+  border-bottom-left-radius:35px;
+  border-bottom-right-radius:35px;
+  box-shadow:0 4px 15px rgba(0,0,0,.2);
+}
+
+.card {
+  border-radius:18px;
+  border:none;
+  box-shadow:0 6px 14px rgba(0,0,0,.08);
+}
+
+.card:active {
+  transform: scale(0.98);
+}
+
+video, canvas {
+  width:100%;
+  border-radius:15px;
+}
+
+/* warna berdasarkan class */
+.gold { background:#fff8e1; border-left:6px solid gold; }
+.silver { background:#f5f5f5; border-left:6px solid silver; }
+.bronze { background:#fbe9e7; border-left:6px solid #cd7f32; }
+.yellow { background:#fffde7; border-left:6px solid #fbc02d; }
+.platinum { background:#e3f2fd; border-left:6px solid #90caf9; }
+
+/* icon kulkas */
+.gdm-icon {
+  font-size: 22px;
+  color: red;
+  margin-right: 2px;
+}
+
+/* thumbnail */
+.thumb {
+  width:90px;
+  height:90px;
+  object-fit:cover;
+  border-radius:14px;
+  border:none;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+.thumb-empty {
+  width:100px;
+  height:100px;
+  border-radius:12px;
+  border:2px dashed #ccc;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  color:#999;
+}
+
+/* modal preview foto harus paling atas */
+#photoModal {
+  z-index: 99999 !important;
+}
+
+#photoModal .modal-backdrop {
+  z-index: 99998 !important;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  box-shadow:0 -3px 10px rgba(0,0,0,.15);
+  border-top-left-radius:20px;
+  border-top-right-radius:20px;
+  z-index:9999;
+}
+
+.action-btn-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+  color: #888; /* mute */
+}
+
+.action-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-bottom: 2px;
+}
+
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero text-center">
+  <h3>🏪 Festive MIT 2026</h3>
+  <p class="mb-1">Northern Sumatra Operation</p>
+</div>
+
+<!-- NAV -->
+<nav class="navbar navbar-expand navbar-light bg-white shadow-sm sticky-top">
+  <div class="bottom-nav d-flex justify-content-around py-2">
+  <button class="btn btn-link" onclick="showPage('listPage')">🏪<br>Toko</button>
+  <button class="btn btn-link" onclick="alert('Pilih toko')">📸<br>Selfie</button>
+</div>
+
+</nav>
+
+<!-- LIST PAGE -->
+<div id="listPage" class="container mt-3">
+  <select id="teamSelect" class="form-select mb-3"></select>
+  <div id="shopList"></div>
+</div>
+
+<!-- CAMERA PAGE -->
+<div id="cameraPage" class="container mt-3" style="display:none;">
+  <h5>📸 Selfie Check-in</h5>
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas" class="mt-2"></canvas>
+  <button class="btn btn-success w-100 mt-3" onclick="capturePhoto()">Ambil Foto</button>
+</div>
+
+<!-- MODAL DETAIL TOKO -->
+<div class="modal fade" id="shopModal">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title">Detail Toko</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FOTO -->
+<div class="modal fade" id="photoModal">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Foto Check-in</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="fullPhoto" src="" class="img-fluid rounded">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AKTIVITAS -->
+<div class="modal fade" id="activityModal">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title">Aktivitas Outlet</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="activityBody"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+
+<script>
+// ================= DATA TOKO (CONTOH) =================
+const shops = [
+ {team:"Anak Medan",leader:"EKO RISDIANTO",name:"TOKO BUDI",address:"JL SETIA BUDI NO 35 NO 35",subtrade:"N15",gdm:"GE30010",class:"Gold",lat:3.581299,lng:98.643244},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"TRI BOY II",address:"JL DR MASYUR DEPAN SMTK 8 NO",subtrade:"N23",gdm:"GE07792",class:"Silver",lat:3.5675917,lng:98.6483018},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"MARISSA",address:"JL DR MANSYUR NO 01",subtrade:"N16",gdm:"GA17335",class:"Silver",lat:3.567466,lng:98.660588},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"JUMINO",address:"JL PSR 1 NO 113",subtrade:"N15",gdm:"GD39073",class:"Bronze",lat:3.5587913,lng:98.6251746},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"TOKO RB",address:"JL NGUMBAN SURBAKTI NO 11",subtrade:"N39",gdm:"",class:"Silver",lat:3.5443633,lng:98.6269598},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"TOKO MP JAYA",address:"JL DR MANSYUR NO 7",subtrade:"N15",gdm:"GE02057",class:"Yellow",lat:3.5691641,lng:98.6557544},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"FOTO COPY PERCETAKAN PANGLIMA",address:"JL DR MANSYUR NO 11",subtrade:"N46",gdm:"GE31249",class:"Silver",lat:3.5674288,lng:98.6525493},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"TOKO AA JAYA",address:"JL ABDUL HAKIM MEDAN SELAYANG",subtrade:"N15",gdm:"",class:"Silver",lat:3.559004,lng:98.6501767},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"DEPOT ANDRE PANNATA",address:"JL SETIA BUDI NO 102",subtrade:"N16",gdm:"GE31251",class:"Silver",lat:3.5614725,lng:98.626355},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"TOKO ARUL JAYA.",address:"JL KENANGA RAYA NO 10",subtrade:"N16",gdm:"GE15326",class:"Silver",lat:3.561527,lng:98.6332955},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"YONO",address:"JL BUNGA KARDIOL NO 44",subtrade:"N15",gdm:"GD92190",class:"Silver",lat:3.494463,lng:98.601397},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"TOKO USAHA BERSAMA",address:"JL SIMPANG TUNTUNGAN NO 8",subtrade:"N16",gdm:"GA04442",class:"Yellow",lat:3.494493,lng:98.5955203},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"DOR SMER DUTA",address:"JL GATOT SUBROTO NO 307",subtrade:"N45",gdm:"GB08540",class:"Silver",lat:3.5897914,lng:98.655421},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"OKE 3 SWALAYAN",address:"JL JAMIN GINTING NO 115 BL",subtrade:"N15",gdm:"",class:"Silver",lat:3.5264774,lng:98.634456},
+{team:"Anak Medan",leader:"EKO RISDIANTO",name:"TK SUKA DAMAI",address:"JL BUNGA RENTE XX NO 62",subtrade:"N16",gdm:"G119936",class:"Bronze",lat:3.5254157,lng:98.6129274},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"TOKO PARIS",address:"JL PS 1 NO 32 SETIA BUDI",subtrade:"N15",gdm:"GD42838",class:"Silver",lat:3.5587214,lng:98.6332324},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"EDY BRE TIGANA.",address:"JL SETIA BUDI NO 8",subtrade:"N16",gdm:"",class:"Platinum",lat:3.5407865,lng:98.6222602},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"TOKO ANGEL",address:"JL SETIA BUDI NO 3 MEDAN SELA",subtrade:"N16",gdm:"",class:"Silver",lat:3.5406578,lng:98.6222984},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"TOKO AZKA",address:"JL SETIA BUDI NO 2",subtrade:"N16",gdm:"GC49877",class:"Silver",lat:3.557049,lng:98.6341874},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"TOKO L GINTING",address:"JL SETIA BUDI NO 121",subtrade:"N16",gdm:"GC36505",class:"Bronze",lat:3.5746314,lng:98.6428988},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"ANUGRAH",address:"JL SETIA BUDI NO 170",subtrade:"N15",gdm:"GA10408",class:"Silver",lat:3.5707667,lng:98.6425372},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"AL MUNAWARA.",address:"JL SETIA BUDI NO 218 AB",subtrade:"N16",gdm:"HC16990",class:"Platinum",lat:3.56673,lng:98.641338},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"RM FATIMAH",address:"JL DR MANSYUR NO 104",subtrade:"N23",gdm:"GD21731",class:"Bronze",lat:3.5675611,lng:98.6491733},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"FOTO COPY EZRA KHAWAS",address:"JL DR. MANSYUR NO 64",subtrade:"N46",gdm:"G115964",class:"Bronze",lat:3.5674812,lng:98.6523027},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"LINGGA JATI",address:"JL DR MANSYUR NO 101",subtrade:"N15",gdm:"GA03244",class:"Silver",lat:3.5675516,lng:98.6485925},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"TOKO ASRI",address:"JL SEI PADANG NO 125",subtrade:"N15",gdm:"GD39135",class:"Yellow",lat:3.5702024,lng:98.6527683},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"TOKO ISWAN",address:"JL PARANG IV NO 30A",subtrade:"N16",gdm:"",class:"Gold",lat:3.5348836,lng:98.6462729},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"WARUNG BUK NUR",address:"JL GURU PATIMPUS NO 1A",subtrade:"N23",gdm:"GA20706",class:"Silver",lat:3.594674,lng:98.672399},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"PONDOK ZAM ZAM",address:"JL DR MANSYUR NO 14",subtrade:"N23",gdm:"HC03790",class:"Platinum",lat:3.567358,lng:98.651944},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"TOKO MUDAH REZEKI 32",address:"JL SEKIP KEC MEDAN PETISAH NO",subtrade:"N15",gdm:"",class:"Platinum",lat:3.596151,lng:98.6654482},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"TOKO MUDAH REZEKI",address:"JL SEKIP NO 20 MEDAN PETISAH",subtrade:"N15",gdm:"",class:"Platinum",lat:3.5980137,lng:98.6641636},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"TOKO SEGI BULAT 2",address:"JL PWS DPN MESJID NO 41",subtrade:"N16",gdm:"GD80279",class:"Silver",lat:3.591294,lng:98.6614973},
+{team:"Jagoan Medan",leader:"AHMAD FAUZI BINTANG",name:"KEDAI AZKA JAYA",address:"JL SIMP GARUDA NO 31",subtrade:"N15",gdm:"GA24422",class:"Gold",lat:3.585868,lng:98.6414509},
+{team:"Paling Sprite",leader:"AKBAR",name:"SINAR MATA",address:"JL GLUGUR RIMBUN NO 8",subtrade:"Retail",gdm:"0",class:"Silver",lat:3.5148301,lng:98.5626029},
+{team:"Paling Sprite",leader:"AKBAR",name:"TOKO SAHABAT METUAH",address:"JL GLUGUR RIMBUN TELAGA SARI N",subtrade:"Retail",gdm:"GD59005",class:"Gold",lat:3.5776373,lng:98.6281065},
+{team:"Paling Sprite",leader:"AKBAR",name:"TOKO SETIA",address:"JL LAP GOLP/SIMP GOLP NO 112",subtrade:"Retail",gdm:"0",class:"Bronze",lat:3.4986574,lng:98.5742976},
+{team:"Paling Sprite",leader:"AKBAR",name:"TOKO GROSIR SEMBAKO ATHA",address:"JL SEI GLUGUR PSR3 NO 43",subtrade:"Retail",gdm:"0",class:"Gold",lat:3.5041445,lng:98.5510722},
+{team:"Paling Sprite",leader:"AKBAR",name:"KIOS DHE MARKET",address:"JL PRJUANGN DESA SUKARAYA NO 1",subtrade:"Retail",gdm:"GD80452",class:"Bronze",lat:3.5172849,lng:98.5628846},
+{team:"Paling Sprite",leader:"AKBAR",name:"KIOS IQBAL",address:"JL DUSUN VI PURWOJOYO NO 4",subtrade:"Retail",gdm:"GE33461",class:"Bronze",lat:3.525398,lng:98.5677855},
+{team:"Paling Sprite",leader:"AKBAR",name:"TOKO GITA",address:"JL GELGURUR RIMBUN NO 234",subtrade:"Retail",gdm:"GD59028",class:"Silver",lat:3.5085105,lng:98.5557919},
+{team:"Paling Sprite",leader:"AKBAR",name:"KEDAI KARINA",address:"JL METRIOLOGI NO 03",subtrade:"Retail",gdm:"GB20587",class:"Bronze",lat:3.496694,lng:98.570311},
+{team:"Paling Sprite",leader:"AKBAR",name:"OS-TOKO SURBAKTI",address:"JL GLUGUR RIMBUN NO 17",subtrade:"Wholesaler",gdm:"GC06972",class:"Bronze",lat:3.4855335,lng:98.5320208},
+{team:"Paling Sprite",leader:"AKBAR",name:"TARIGAN/ HOLI PONSEL",address:"JL GLUGUR RIMBUN PSR 8 NO 78",subtrade:"Retail",gdm:"GD34885",class:"Bronze",lat:3.540755,lng:98.550288},
+{team:"Paling Sprite",leader:"AKBAR",name:"TOKO M SEMBIRING",address:"JL GLUGUR RIMBUN DSN2 NO 170",subtrade:"Retail",gdm:"GD79464",class:"Bronze",lat:3.5332208,lng:98.5500615},
+{team:"Paling Sprite",leader:"AKBAR",name:"TOKO AYU.",address:"JL PURWO JOYO NO 105",subtrade:"Retail",gdm:"GD38078",class:"Silver",lat:3.525258,lng:98.567594},
+{team:"Paling Sprite",leader:"AKBAR",name:"TOKO ALVARO.",address:"JL GLUGUR RIMBUN SIMP PRUMAHN",subtrade:"Wholesaler",gdm:"GE11313",class:"Bronze",lat:3.513305,lng:98.560822},
+{team:"Paling Sprite",leader:"AKBAR",name:"TOKO PRESILIA",address:"JL GLUGUR RIMBUN DISKI NO 3",subtrade:"Retail",gdm:"GE36337",class:"Bronze",lat:3.5075483,lng:98.553179},
+{team:"Paling Sprite",leader:"AKBAR",name:"TOKO ZAHRA",address:"JL GLUGUR RIMBUN DSN V NO 150",subtrade:"Retail",gdm:"GE10192",class:"Silver",lat:3.5371189,lng:98.5504857},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"RIA",address:"JL KUTALIM BARU NO 77",subtrade:"Retail",gdm:"GE26443",class:"Bronze",lat:3.4917265,lng:98.5692132},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"OS-SADA PARARIH",address:"JL KUTALIMBARU DPN RIA NO 36",subtrade:"Wholesaler",gdm:"GB07692",class:"Bronze",lat:3.491597,lng:98.568955},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"TOKO MILALA",address:"JL KUTALIMBARU NO 1 RT 1 RW 1",subtrade:"Retail",gdm:"GC80717",class:"Bronze",lat:3.4359206,lng:98.5452206},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"TOKO FELICIA",address:"JL KUTALIMBARU NO 3",subtrade:"Retail",gdm:"GC48167",class:"Bronze",lat:3.451456,lng:98.5473123},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"WARKOP TARIGAN",address:"JL KUTAMLIMBARU NO 64 MEDAN 1",subtrade:"Retail",gdm:"GE02745",class:"Silver",lat:3.4441929,lng:98.5467896},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"TOKO DOA BUNDA 2",address:"JL LAPANGAN GOLF TUTUNGAN DEPA",subtrade:"Wholesaler",gdm:"GD03913",class:"Bronze",lat:3.4983574,lng:98.5808631},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"TOKO TANIA",address:"JL KUTALIMBARU NO 2 4 A",subtrade:"Retail",gdm:"GD12038",class:"Bronze",lat:3.4430142,lng:98.5464662},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"KEDAI AMOS GINTING",address:"JL KUTALIMBARU NO 46",subtrade:"Retail",gdm:"GD63421",class:"Silver",lat:3.4203795,lng:98.5408626},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"BAPAK MARTINUS",address:"JL DUSUN 1 SUKARENDE NO 15",subtrade:"Retail",gdm:"GC36308",class:"Bronze",lat:3.4655284,lng:98.5492416},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"TOKO MAYTA",address:"JL LAP GOLF TUNTUNGAN NO 10",subtrade:"Retail",gdm:"GC62556",class:"Silver",lat:3.497908,lng:98.588061},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"KANTIN REHABILITASI BUKIT DOA",address:"JL LAP GOLF NO120 KOMP REHABIL",subtrade:"Retail",gdm:"GE29945",class:"Silver",lat:3.496408,lng:98.588788},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"KEDAI ERICKA",address:"JL KUTALIMBARU PSR 7 NO 27",subtrade:"Retail",gdm:"GB42873",class:"Silver",lat:3.4589388,lng:98.5469979},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"TOKO IRNA",address:"JL KUTALIMBARU PSR 10 NO 8",subtrade:"Wholesaler",gdm:"GC60436",class:"Bronze",lat:3.4399424,lng:98.5462949},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"TOKO DIO GM",address:"JL KUTALIMBARU PSR 8 BR NO 1",subtrade:"Retail",gdm:"GE11214",class:"Bronze",lat:3.4536443,lng:98.5473766},
+{team:"Medan Juara",leader:"ILHAMUDDDIN",name:"TOKO IWAN",address:"JL KUTALIMBARU PSR 6 NO 66",subtrade:"Retail",gdm:"GE11234",class:"Bronze",lat:3.4644697,lng:98.5484484},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"TOKO TARIGAN",address:"JL NAMO TATING PEKAN NO 3",subtrade:"Wholesaler",gdm:"HC08337",class:"Bronze",lat:3.4599512,lng:98.4896494},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"UD. KETAREN",address:"JL BERDIKARI DSN2 PALOM NO 02",subtrade:"Retail",gdm:"GE23579",class:"Silver",lat:3.424405,lng:98.513466},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"CS SWALAYAN",address:"JL GLUGUR RIMBUN NO 170",subtrade:"Retail",gdm:"GD78495",class:"Silver",lat:3.4704159,lng:98.5231383},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"TOKO BAGAS II",address:"JL NAMUKUR NO 176",subtrade:"Retail",gdm:"0",class:"Bronze",lat:3.540197,lng:98.48373},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"WARUNG RUSTINA",address:"JL PEKAN SAWAH NO 3",subtrade:"Retail",gdm:"0",class:"Bronze",lat:3.4500736,lng:98.5019717},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"TOKO KATAKIN",address:"JL PERKEBUNAN DURIAN LINGGA NO",subtrade:"Retail",gdm:"GE36998",class:"Gold",lat:3.4599519,lng:98.4898542},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"TOKO JASS",address:"JL PS IV NAMU TERASI NO 27",subtrade:"Retail",gdm:"0",class:"Silver",lat:3.5117672,lng:98.4927649},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"TOKO BRAMANA",address:"JL NAMUTRASI PS PINTER NO 3",subtrade:"Retail",gdm:"GE36248",class:"Bronze",lat:3.5419537,lng:98.5003787},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"TOKO SINDI",address:"JL GLUGUR RIMBUN LAUBAKERY NO",subtrade:"Retail",gdm:"GD29832",class:"Silver",lat:3.4636227,lng:98.5235023},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"TOKO SEBAYANG",address:"JL GLUGUR RIMBUNG NO 72 SD",subtrade:"Retail",gdm:"GC86641",class:"Bronze",lat:3.471099,lng:98.523263},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"KEDE PAK NIKO",address:"JL G.RIMBUN BDIKARI NO 21",subtrade:"Wholesaler",gdm:"GD78513",class:"Bronze",lat:3.423641,lng:98.513116},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"SEMBIRING",address:"JL G RIMBUN BERDIKARI NO 4",subtrade:"Retail",gdm:"GC00482",class:"Silver",lat:3.4246564,lng:98.5133556},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"MAWAN GINTING",address:"JL PEKAN NAMO UKUR NO 6",subtrade:"Retail",gdm:"GE05414",class:"Bronze",lat:3.483233,lng:98.457041},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"WARUNG BAKSO BG YOS",address:"JL GLUGUR RIMBUN NO 102",subtrade:"Retail",gdm:"GD12047",class:"Bronze",lat:3.4686792,lng:98.5231539},
+{team:"Sprite Mantap",leader:"AGUS SUNAWAN",name:"WARUNG ADIT",address:"JL NAMUSIRA SIRA NO 28",subtrade:"Retail",gdm:"0",class:"Bronze",lat:3.462005,lng:98.488369}
+
+
+];
+
+let currentShop=null;
+const teamSelect=document.getElementById("teamSelect");
+const video=document.getElementById("video");
+const canvas=document.getElementById("canvas");
+
+// ================= LOCAL STORAGE =================
+function saveCheckin(shopName, imageData){
+  let checkins = JSON.parse(localStorage.getItem("checkins")) || {};
+  checkins[shopName] = imageData;
+  localStorage.setItem("checkins", JSON.stringify(checkins));
+}
+function getCheckin(shopName){
+  let checkins = JSON.parse(localStorage.getItem("checkins")) || {};
+  return checkins[shopName] || null;
+}
+
+// ================= TEAM LIST =================
+[...new Set(shops.map(s=>s.team))].forEach(t=>{
+  const o=document.createElement("option");
+  o.value=t; o.textContent=t;
+  teamSelect.appendChild(o);
+});
+teamSelect.onchange=renderList;
+
+// ================= STYLE CLASS =================
+function classStyle(cls){
+  return cls.toLowerCase();
+}
+
+// ================= ICON GDM =================
+function renderGDM(code){
+  return `<span class="gdm-icon">🧊</span> <b>${code}</b>`;
+}
+
+function capturePhoto(){
+  if(currentActivity){
+    captureActivity();
+  }else{
+    captureCheckin();
+  }
+}
+
+
+// ================= RENDER LIST =================
+function renderList(){
+  const list = document.getElementById("shopList");
+  list.innerHTML = "";
+
+  shops
+    .filter(s => s.team === teamSelect.value)
+    .forEach(s => {
+      const thumb = getCheckin(s.name);
+
+      list.innerHTML += `
+      <div class="card mb-3 ${classStyle(s.class)}">
+        <div class="card-body position-relative">
+
+          <!-- Badge Class -->
+          <span class="badge bg-dark position-absolute top-0 end-0 m-2">
+            ${s.class}
+          </span>
+
+          <div class="d-flex">
+            <!-- Info -->
+            <div style="flex:1">
+              <b><i class="bi bi-shop text-primary"></i> ${s.name}</b><br>
+              <small class="text-muted">
+                <i class="bi bi-geo-alt"></i> ${s.address}
+              </small><br>
+
+              <div class="mt-1">
+                <span class="badge bg-info">${s.subtrade}</span>
+                <span class="badge bg-secondary">${renderGDM(s.gdm)}</span>
+              </div>
+
+              <div class="mt-1">
+                <small>Leader: ${s.leader}</small>
+              </div>
+            </div>
+
+            <!-- Thumbnail -->
+            <div class="ms-2">
+              ${
+                thumb
+                  ? `<img src="${thumb}" class="thumb" onclick="openPhoto('${s.name}')">`
+                  : `<div class="thumb-empty">No Photo</div>`
+              }
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="d-flex justify-content-around mt-3">
+
+  <div class="action-btn-wrap">
+    <button class="btn btn-primary action-btn"
+            onclick="openModal('${s.name}')">
+      <i class="bi bi-info-circle"></i>
+    </button>
+    <span>Detail</span>
+  </div>
+
+  <div class="action-btn-wrap">
+    <button class="btn btn-warning action-btn"
+            onclick="openMap(${s.lat},${s.lng})">
+      <i class="bi bi-geo-alt"></i>
+    </button>
+    <span>Map</span>
+  </div>
+
+  <div class="action-btn-wrap">
+    <button class="btn btn-success action-btn"
+            onclick="startCamera('${s.name}')">
+      <i class="bi bi-camera"></i>
+    </button>
+    <span>Foto</span>
+  </div>
+
+  <div class="action-btn-wrap">
+    <button class="btn btn-info action-btn"
+            onclick="openActivity('${s.name}')">
+      <i class="bi bi-journal-text"></i>
+    </button>
+    <span>Aktivitas</span>
+  </div>
+
+</div>
+
+
+        </div>
+      </div>`;
+    });
+}
+renderList();
+
+// ================= MODAL DETAIL =================
+function openModal(name){
+  const s = shops.find(x=>x.name===name);
+  document.getElementById("modalBody").innerHTML = `
+    <h5 class="mb-2">
+      <i class="bi bi-shop text-primary"></i> ${s.name}
+    </h5>
+    <div class="text-muted mb-2">
+      <i class="bi bi-geo-alt"></i> ${s.address}
+    </div>
+    <hr>
+    <div><b>Channel:</b> ${s.subtrade}</div>
+    <div><b>GDM:</b> ${s.gdm}</div>
+    <div><b>Class:</b> ${s.class}</div>
+    <div><b>Team:</b> ${s.team}</div>
+    <div><b>Leader:</b> ${s.leader}</div>
+  `;
+  new bootstrap.Modal(document.getElementById("shopModal")).show();
+}
+
+// ================= PREVIEW FOTO =================
+function openPhoto(shopName){
+  const img = getCheckin(shopName);
+  if(!img){
+    alert("Belum ada foto");
+    return;
+  }
+  document.getElementById("fullPhoto").src = img;
+  new bootstrap.Modal(document.getElementById("photoModal")).show();
+}
+
+// ================= MAP =================
+function openMap(lat,lng){
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+}
+
+// ================= CAMERA =================
+async function startCamera(name){
+  currentShop = shops.find(x=>x.name===name);
+  showPage("cameraPage");
+
+  setTimeout(async ()=>{
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: false
+      });
+      video.srcObject = stream;
+      await video.play();
+    } catch (err) {
+      alert("Kamera tidak bisa diakses. Pastikan izin kamera aktif.");
+      console.error(err);
+    }
+  }, 300);
+}
+
+// ================= CAPTURE =================
+function captureCheckin(){
+  if(!video.srcObject){
+    alert("Kamera belum aktif");
+    return;
+  }
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight + 180;
+  const ctx = canvas.getContext("2d");
+
+  ctx.drawImage(video,0,0);
+
+  ctx.fillStyle="black";
+  ctx.fillRect(0,video.videoHeight,canvas.width,180);
+
+  ctx.fillStyle="white";
+  ctx.font="16px Arial";
+  let y = video.videoHeight + 25;
+
+  ctx.fillText("Toko   : " + currentShop.name,10,y); y+=22;
+  ctx.fillText("Alamat : " + currentShop.address,10,y); y+=22;
+  ctx.fillText("Team   : " + currentShop.team,10,y); y+=22;
+  ctx.fillText("Leader : " + currentShop.leader,10,y); y+=22;
+  ctx.fillText("Channel: " + currentShop.subtrade,10,y); y+=22;
+  ctx.fillText("GDM    : " + currentShop.gdm,10,y); y+=22;
+  ctx.fillText("Class  : " + currentShop.class,10,y);
+
+  const imageData = canvas.toDataURL("image/jpeg");
+
+  saveCheckin(currentShop.name, imageData);
+
+  stopCamera();
+  alert("Check-in berhasil!");
+  showPage("listPage");
+  renderList();
+}
+
+// ================= PAGE SWITCH =================
+function showPage(id){
+  document.getElementById("listPage").style.display="none";
+  document.getElementById("cameraPage").style.display="none";
+  document.getElementById(id).style.display="block";
+}
+
+const activities = [
+ "Siapa Pelanggan Kita",
+ "CLEAN & MERCHANDISE OUR ASSETS",
+ "Pasang POSM sesuai panduan PICOS",
+ "Form Penjualan",
+ "GDM Arrangement Before After",
+ "Setup Floor Display",
+ "Pengisian Mark Apps & Google Form"
+];
+
+function saveActivity(shop, act, img){
+  let data = JSON.parse(localStorage.getItem("activities")) || {};
+  if(!data[shop]) data[shop]={};
+  data[shop][act]=img;
+  localStorage.setItem("activities", JSON.stringify(data));
+}
+
+function getActivity(shop, act){
+  let data = JSON.parse(localStorage.getItem("activities")) || {};
+  return data[shop]?.[act] || null;
+}
+
+function openActivity(shopName){
+  currentShop = shops.find(x=>x.name===shopName);
+  let html = `<h6><i class="bi bi-shop"></i> ${shopName}</h6><hr>`;
+
+  activities.forEach(act=>{
+    const img = getActivity(shopName, act);
+
+    html += `
+    <div class="card mb-2">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+          <b>${act}</b><br>
+          ${
+            img
+            ? `<small class="text-success">✔ Sudah ada foto</small>`
+            : `<small class="text-danger">✘ Belum ada foto</small>`
+          }
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          ${
+            img
+            ? `<img src="${img}" class="thumb" onclick="previewActivity('${shopName}','${act}')">`
+            : `<div class="thumb-empty">No Photo</div>`
+          }
+          <button class="btn btn-sm btn-success" onclick="startActivityCamera('${shopName}','${act}')">📸</button>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById("activityBody").innerHTML = html;
+  new bootstrap.Modal(document.getElementById("activityModal")).show();
+}
+
+let currentActivity = null;
+
+async function startActivityCamera(shop, act){
+  currentShop = shops.find(x=>x.name===shop);
+  currentActivity = act;
+
+  // tutup modal aktivitas dulu
+  bootstrap.Modal.getInstance(document.getElementById("activityModal")).hide();
+
+  showPage("cameraPage");
+
+  setTimeout(async ()=>{
+    const stream = await navigator.mediaDevices.getUserMedia({video:true});
+    video.srcObject = stream;
+    video.play();
+  },300);
+}
+
+function captureActivity(){
+  if(!video.srcObject) return alert("Kamera belum aktif");
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight + 200;
+  const ctx = canvas.getContext("2d");
+
+  ctx.drawImage(video,0,0);
+
+  ctx.fillStyle="black";
+  ctx.fillRect(0,video.videoHeight,canvas.width,200);
+
+  ctx.fillStyle="white";
+  ctx.font="16px Arial";
+  let y = video.videoHeight + 25;
+
+  ctx.fillText("Toko: " + currentShop.name,10,y); y+=22;
+  ctx.fillText("Aktivitas: " + currentActivity,10,y);
+
+  const img = canvas.toDataURL("image/jpeg");
+
+  saveActivity(currentShop.name, currentActivity, img);
+
+  stopCamera();
+  currentActivity=null;
+
+  showPage("listPage");
+
+  setTimeout(()=>{
+    openActivity(currentShop.name);
+  },300);
+
+  alert("Foto aktivitas tersimpan");
+}
+
+function stopCamera(){
+  if(video.srcObject){
+    video.srcObject.getTracks().forEach(t=>t.stop());
+    video.srcObject=null;
+  }
+}
+
+
+function previewActivity(shop, act){
+  const img = getActivity(shop, act);
+  document.getElementById("fullPhoto").src = img;
+  new bootstrap.Modal(document.getElementById("photoModal")).show();
+}
+
+</script>
+
+</body>
+</html>
