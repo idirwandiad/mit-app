@@ -155,6 +155,25 @@ video, canvas {
   transform: scale(0.9);
 }
 
+.team-chip {
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: #e9ecef;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: .2s;
+}
+
+.team-chip.active {
+  background: linear-gradient(135deg,#00c853,#1de9b6);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 3px 10px rgba(0,0,0,.2);
+}
 
 </style>
 </head>
@@ -169,7 +188,8 @@ video, canvas {
 
 <!-- LIST PAGE -->
 <div id="listPage" class="container mt-3">
-  <select id="teamSelect" class="form-select mb-3"></select>
+  <div id="teamSelector" class="d-flex gap-2 overflow-auto mb-3"></div>
+
   <div id="shopList"></div>
 </div>
 
@@ -348,12 +368,31 @@ function getCheckin(shopName){
 }
 
 // ================= TEAM LIST =================
-[...new Set(shops.map(s=>s.team))].forEach(t=>{
-  const o=document.createElement("option");
-  o.value=t; o.textContent=t;
-  teamSelect.appendChild(o);
+const teamSelector = document.getElementById("teamSelector");
+let selectedTeam = null;
+
+function getTeamIcon(team){
+  if(team.includes("Medan")) return "🏙️";
+  if(team.includes("Sprite")) return "🥤";
+  return "🏪";
+}
+
+[...new Set(shops.map(s=>s.team))].forEach((t,i)=>{
+  const div = document.createElement("div");
+  div.className = "team-chip" + (i===0 ? " active":"");
+  div.innerHTML = `<span>${getTeamIcon(t)}</span> ${t}`;
+
+  div.onclick = ()=>{
+    document.querySelectorAll(".team-chip").forEach(x=>x.classList.remove("active"));
+    div.classList.add("active");
+    selectedTeam = t;
+    renderList();
+  };
+
+  teamSelector.appendChild(div);
+
+  if(i===0) selectedTeam = t;
 });
-teamSelect.onchange=renderList;
 
 // ================= STYLE CLASS =================
 function classStyle(cls){
@@ -380,7 +419,8 @@ function renderList(){
   list.innerHTML = "";
 
   shops
-    .filter(s => s.team === teamSelect.value)
+    .filter(s => s.team === selectedTeam)
+
     .forEach(s => {
       const thumb = getCheckin(s.name);
 
